@@ -256,6 +256,9 @@ Importat issues:
     3. Large number of levels factors
     4. Special values
     5. Target variable (imbalnace?)
+      5.1 Cut-off point - can be chosen based on the distribution of the successes and failures
+      in the sample. So for this dataset a good dataset may be around 11%. A 50% cut-off point
+      will generally work poorly if the target is not equally balanced (50% - success, 50% - failure)
 
 
 ```{r message=FALSE, warning=FALSE}
