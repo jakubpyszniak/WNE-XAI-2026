@@ -393,7 +393,7 @@ start<-Sys.time()
 cols<-colnames(train)[-20]
 
 #prediction function
-p_fun <- function(object, newdata){predict(object, newdata=newdata, type="prob")[,2]}
+p_fun <- function(object, newdata){predict(object, newdata=newdata, type="prob")[,2]} # choose the prob of success to feed into explainer 
 
 #target variable
 yTest<-ifelse(test$class=="yes",1,0)
@@ -422,9 +422,9 @@ options(scipen=9999)
 
 mean(test$class1)
 opt_LR_ROC01$ROC01$Global$optimal.cutoff$cutoff
-confusionMatrix(factor(ifelse(pred_LR>mean(test$class1),"yes","no")),test$class,positive ="yes")
-confusionMatrix(factor(ifelse(pred_LR>opt_LR_ROC01$ROC01$Global$optimal.cutoff$cutoff,"yes","no")), test$class, positive ="yes")
-confusionMatrix(factor(ifelse(pred_LR>0.5,"yes","no")),test$class,positive ="yes")
+confusionMatrix(factor(ifelse(pred_LR>mean(test$class1),"yes","no")),test$class,positive ="yes") #average prop of successes
+confusionMatrix(factor(ifelse(pred_LR>opt_LR_ROC01$ROC01$Global$optimal.cutoff$cutoff,"yes","no")), test$class, positive ="yes") # ROC1 optimal point
+confusionMatrix(factor(ifelse(pred_LR>0.5,"yes","no")),test$class,positive ="yes") # classic 50%
 
 
 ```
@@ -554,7 +554,7 @@ confusionMatrix(factor(ifelse(pred_LR_stepwise>0.5,"yes","no")),test$class,posit
 
 ```
 
-We are starrting with ML methods
+We are starting with ML methods
 1. Setting up a tune length parameter
 
 
@@ -725,7 +725,7 @@ confusionMatrix(factor(ifelse(pred_lr_reg>0.5,"yes","no")),test$class,positive =
 
 
 
-Decsioon tree
+Decision tree
 
 
 ```{r}
@@ -1129,6 +1129,8 @@ densityplot(XGB, pch = "|")
 ```
 
 Optimal cut-off results for XGB
+
+THE PRED FUNCTION DOESN'T WORK -> OLD OBJECT
 ```{r message=FALSE, warning=FALSE}
 pred_XGB<-predict(XGB, test, "prob")[,2]
 test$pred_XGB<-pred_XGB
@@ -1218,9 +1220,11 @@ Using information from ML algorithms
 
 
 New categorisation based on Clustering results from ALE/PDP plot.
+
+EXPLAINER CHANGED BECAUSE XGB OBJECT GOT CORRUPTED
 ```{r}
 library(rSAFE)
-safe_extractor <- safe_extraction(explainer_xgb,response_type="ale", penalty = "MBIC", method="single", verbose = T,no_segments=5)
+safe_extractor <- safe_extraction(explainer_rf,response_type="ale", penalty = "MBIC", method="single", verbose = T,no_segments=5)
 safe_extractor$variables_info
 safe_extractor
 ```
@@ -1231,13 +1235,15 @@ plot(safe_extractor, variable = "nr.employed")
 plot(safe_extractor, variable = 'marital')
 plot(safe_extractor, variable = 'job')
 ```
+The dotted lines can be used as indicators of where to bin the variables
+
 
 For each pair of features it performs values permutation in order to evaluate their non_additive effect
 Difference between joint loss of quality & separate
 ```{r}
-safely_detect_interactions(explainer_xgb, inter_param = 0.5,inter_threshold = 0.5, verbose = TRUE)
+safely_detect_interactions(explainer_rf, inter_param = 0.5,inter_threshold = 0.5, verbose = TRUE)
 ```
-
+Using the bins to transform the train and test data (one-hot encoded) ->
 
 ```{r}
 test1 <- safely_transform_data(safe_extractor, test, verbose = T)
@@ -1302,7 +1308,7 @@ train2 <- train1[,c(colnames(train1)[grepl("_new",colnames(train1))],"contact","
 
 
 
-saveRDS(lr_reg_rs, file = "lr_reg_rs.rds")
+#saveRDS(lr_reg_rs, file = "lr_reg_rs.rds")
 
 lr_reg_rs<-readRDS(file = "lr_reg_rs.rds")
 
@@ -1512,24 +1518,27 @@ mp_xgb  <- auditor::model_performance(explainer_xgb, score = c("one_minus_gini",
 mp_xgb
 
 
-plot_radar(mp_lr,mp_lr_reg,mp_lr_reg_rs,mp_dt,mp_rf,mp_xgb)
+#plot_radar(mp_lr,mp_lr_reg,mp_lr_reg_rs,mp_dt,mp_rf,mp_xgb)
+plot_radar(mp_lr,mp_lr_reg,mp_dt,mp_rf)
 ```
 
 ```{r}
 me_lr <- model_evaluation(explainer_lr)
 me_lr_reg <- model_evaluation(explainer_lr_reg)
 me_lr_stepwise <- model_evaluation(explainer_LR_stepwise)
-me_lr_reg_rs <- model_evaluation(explainer_lr_reg_rs)
-me_xgb <- model_evaluation(explainer_xgb)
+#me_lr_reg_rs <- model_evaluation(explainer_lr_reg_rs)
+#me_xgb <- model_evaluation(explainer_xgb)
 me_dt <- model_evaluation(explainer_dt)
 me_rf <- model_evaluation(explainer_rf)
-me_xgb <- model_evaluation(explainer_xgb)
+#me_xgb <- model_evaluation(explainer_xgb)
 
 # ROC
-plot_roc(me_lr,me_lr_reg,me_lr_reg_rs,me_dt,me_rf,me_xgb)
+#plot_roc(me_lr,me_lr_reg,me_lr_reg_rs,me_dt,me_rf,me_xgb)
+plot_roc(me_lr,me_lr_reg,me_dt,me_rf)
 
 # LIFT
-plot_lift(me_lr,me_lr_reg,me_lr_reg_rs,me_dt,me_rf,me_xgb)
+#plot_lift(me_lr,me_lr_reg,me_lr_reg_rs,me_dt,me_rf,me_xgb)
+plot_lift(me_lr,me_lr_reg,me_dt,me_rf)
 
 
 
@@ -1614,9 +1623,9 @@ Feature importance from Ingridients - permutation based
   # piv_xgb_diff <-ingredients::feature_importance(explainer_xgb,loss_one_minus_auc, B = 10,type="difference")
   # saveRDS(piv_rf_diff, file = "piv_rf_diff.rds")
   # saveRDS(piv_xgb_diff, file = "piv_xgb_diff.rds")
-  piv_rf_diff<-readRDS("piv_rf_diff.rds")
+ # piv_rf_diff<-readRDS("piv_rf_diff.rds")
   piv_xgb_diff<-readRDS("piv_xgb_diff.rds")
-  plot(piv_xgb_diff,piv_rf_diff, bar_width=2)
+  #plot(piv_xgb_diff,piv_rf_diff, bar_width=2)
 
   
  piv_rf %>% as_tibble()%>% arrange(desc(dropout_loss)) %>% filter(permutation==0)
@@ -1812,12 +1821,12 @@ Feature importance from Ingredients with Aspects - permutation based
   piv_lr_reg_asp<-readRDS("piv_lr_reg_asp.rds")  
   piv_lr_reg_rs_asp<-readRDS("piv_lr_reg_rs_asp.rds")  
   piv_rf_asp<-readRDS("piv_rf_asp.rds")  
-  piv_dt_asp<-readRDS("piv_dt_asp.rds")
+ # piv_dt_asp<-readRDS("piv_dt_asp.rds")
   piv_xgb_asp<-readRDS("piv_xgb_asp.rds")  
   # piv_lr_stepwise<-readRDS("piv_lr_stepwise.rds")  
      
      
-  plot(piv_lr_asp,piv_lr_reg_asp,piv_lr_reg_rs_asp,piv_rf_asp,piv_dt_asp,piv_xgb_asp, bar_width=2)
+  plot(piv_lr_asp,piv_lr_reg_asp,piv_lr_reg_rs_asp,piv_rf_asp,piv_xgb_asp, bar_width=2)
 
 
 ```
@@ -1833,8 +1842,8 @@ PDP for duration from RF model
 
 ```{r}
   selected_cases100<-ingredients::select_sample(test, n = 1000)
-  cp_xgb <- ingredients::ceteris_paribus(explainer_xgb, selected_cases100)
-  pdp_empl_cp_xgb <- ingredients::aggregate_profiles(cp_xgb, variables = "nr.employed") 
+  #cp_xgb <- ingredients::ceteris_paribus(explainer_xgb, selected_cases100)
+  #pdp_empl_cp_xgb <- ingredients::aggregate_profiles(cp_xgb, variables = "nr.employed") 
   plot(pdp_empl_cp_xgb) + show_rugs(cp_xgb, variables = "nr.employed", color = "red")
 ```
 Conclusions:
