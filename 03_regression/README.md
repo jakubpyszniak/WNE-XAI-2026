@@ -1,3 +1,7 @@
+> # Homework 1
+Homework tasks from file 03_ensembling.ipynb are at the bottom of that file. The previous workflows and file connections are utilised.
+
+
 # 🏠 Real Estate Price Prediction: King's County 
 
 This repository contains codes for the second milestone of the Course, namely leveraging XAI framework within the scope of house sale price prediction.
