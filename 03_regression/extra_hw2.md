@@ -55,4 +55,4 @@ The article should read like something you would actually publish — a real cas
 
 ## Submission
 
-Submit a link to your public GitHub repository by **May 29**.
+Submit a link to your public GitHub repository by **May 31** (EOD).
